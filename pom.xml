@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.argo</groupId>
   <artifactId>lucene-analyzers-arirang</artifactId>
-  <version>4.9.0</version>
+  <version>4.10.4</version>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -11,13 +11,13 @@
   	<dependency>
   		<groupId>org.apache.lucene</groupId>
   		<artifactId>lucene-core</artifactId>
-  		<version>4.9.0</version>
+  		<version>4.10.4</version>
   		<scope>provided</scope>
   	</dependency>
   	<dependency>
   		<groupId>org.apache.lucene</groupId>
   		<artifactId>lucene-analyzers-common</artifactId>
-  		<version>4.9.0</version>
+  		<version>4.10.4</version>
   		<scope>provided</scope>
   	</dependency>
   	<dependency>

@@ -77,22 +77,12 @@ public final class KoreanTokenizer extends Tokenizer {
 
     public KoreanTokenizer(Reader input) {
         super(input);
-        charUtils = CharacterUtils.getJava4Instance();
-    }
-
-    public KoreanTokenizer(Version version, Reader input) {
-        super(input);
-        charUtils = CharacterUtils.getInstance(version);
+        charUtils = CharacterUtils.getInstance();
     }
 
     public KoreanTokenizer(AttributeFactory factory, Reader input) {
         super(factory, input);
-        charUtils = CharacterUtils.getJava4Instance();
-    }
-
-    public KoreanTokenizer(Version version, AttributeFactory factory, Reader input) {
-        super(factory, input);
-        charUtils = CharacterUtils.getInstance(version);
+        charUtils = CharacterUtils.getInstance();
     }
 
     @Override
