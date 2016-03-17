@@ -1,6 +1,5 @@
 package org.apache.lucene.analysis.ko;
 
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.util.AttributeImpl;
 
 /**

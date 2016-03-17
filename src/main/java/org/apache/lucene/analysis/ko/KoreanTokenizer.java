@@ -18,27 +18,19 @@ package org.apache.lucene.analysis.ko;
  */
 
 import java.io.IOException;
-
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharacterUtils;
 import org.apache.lucene.util.AttributeFactory;
-import org.apache.lucene.util.Version;
 
 public final class KoreanTokenizer extends Tokenizer {
-
-    private static Pattern PTN_KOREAN = Pattern.compile("([.]+)[\"'\\[\\(\\{]+([.]+)[\"'\\]\\)\\}]+");
 
     private int offset = 0, bufferIndex = 0, dataLen = 0, finalOffset = 0;
     private static final int MAX_WORD_LEN = 255;
@@ -70,18 +62,13 @@ public final class KoreanTokenizer extends Tokenizer {
     // term offset, positionIncrement and type
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
     private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
-    private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
-    private final PositionLengthAttribute posLengthAtt = addAttribute(PositionLengthAttribute.class);
     private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
-    private final MorphemeAttribute morphAtt = addAttribute(MorphemeAttribute.class);
-
-    public KoreanTokenizer(Reader input) {
-        super(input);
+    public KoreanTokenizer() {
         charUtils = CharacterUtils.getInstance();
     }
 
-    public KoreanTokenizer(AttributeFactory factory, Reader input) {
-        super(factory, input);
+    public KoreanTokenizer(AttributeFactory factory) {
+        super(factory);
         charUtils = CharacterUtils.getInstance();
     }
 
@@ -174,7 +161,8 @@ public final class KoreanTokenizer extends Tokenizer {
      */
     private String getType() {
         char[] buffer = termAtt.buffer();
-        for(int i=0;i<buffer.length;i++) {
+        int leng = termAtt.length();
+        for(int i=0;i<leng;i++) {
             if(buffer[i]=='\u0000') break;
             if(buffer[i]>='\uAC00' && buffer[i]<='\uD7A3') return TYPE_KOREAN;
         }

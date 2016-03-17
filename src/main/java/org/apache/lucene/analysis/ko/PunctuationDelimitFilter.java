@@ -176,7 +176,8 @@ public final class PunctuationDelimitFilter extends TokenFilter {
             return offset;
         }
 
-        public void setOffset(int offset) {
+        @SuppressWarnings("unused")
+		public void setOffset(int offset) {
             this.offset = offset;
         }
 
@@ -184,7 +185,8 @@ public final class PunctuationDelimitFilter extends TokenFilter {
             return increment;
         }
 
-        public void setIncrement(int increment) {
+        @SuppressWarnings("unused")
+		public void setIncrement(int increment) {
             this.increment = increment;
         }
 
@@ -192,7 +194,8 @@ public final class PunctuationDelimitFilter extends TokenFilter {
             return term;
         }
 
-        public void setTerm(String term) {
+        @SuppressWarnings("unused")
+		public void setTerm(String term) {
             this.term = term;
         }
     }

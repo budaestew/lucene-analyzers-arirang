@@ -29,8 +29,6 @@ public final class HanjaMappingFilter extends TokenFilter {
 
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
     private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
-    private final PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
-    private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
     private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
 
     /**
@@ -112,7 +110,8 @@ public final class HanjaMappingFilter extends TokenFilter {
             return result;
         }
 
-        StringBuffer sb = null;
+        @SuppressWarnings("unused")
+		StringBuffer sb = null;
         boolean wasHanja = false;
         for (int i=0; i<term.length();i++) {
             if(isHanja(term.charAt(i)))  {
@@ -184,15 +183,13 @@ public final class HanjaMappingFilter extends TokenFilter {
 	        
         int noCandidate = candiList.size();
         int maxDecompounds = 0;
-        List<List<CompoundEntry>> compoundList = new ArrayList();
+        List<List<CompoundEntry>> compoundList = new ArrayList<List<CompoundEntry>>();
         for(int i=0;i<noCandidate;i++) {
             outQueue.add(new KoreanToken(candiList.get(i).toString(),offsetAtt.startOffset(), 0));
             List<CompoundEntry> results = confirmCNoun(candiList.get(i).toString());
             compoundList.add(results);
             if(maxDecompounds<results.size()) maxDecompounds = results.size();
         }
-
-        Map<String, String> cnounMap = new HashMap<String, String>();
 
         // 추출된 명사가 복합명사인 경우 분리한다.
         if(maxDecompounds>1) {
@@ -202,7 +199,7 @@ public final class HanjaMappingFilter extends TokenFilter {
             int minOffset = term.length();
             
             for(int i=0;i<maxDecompounds;i++) {
-            	Map dupcheck = new HashMap();
+            	Map<String, CompoundEntry> dupcheck = new HashMap<String, CompoundEntry>();
             	int min = term.length();
             	boolean done = false;
             	for(int j=0;j<noCandidate;j++){

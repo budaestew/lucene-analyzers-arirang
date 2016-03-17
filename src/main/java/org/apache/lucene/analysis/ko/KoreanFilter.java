@@ -18,27 +18,29 @@ package org.apache.lucene.analysis.ko;
  */
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ko.morph.AnalysisOutput;
 import org.apache.lucene.analysis.ko.morph.CompoundEntry;
-import org.apache.lucene.analysis.ko.morph.CompoundNounAnalyzer;
 import org.apache.lucene.analysis.ko.morph.MorphAnalyzer;
 import org.apache.lucene.analysis.ko.morph.MorphException;
 import org.apache.lucene.analysis.ko.morph.PatternConstants;
-import org.apache.lucene.analysis.ko.morph.WordEntry;
-import org.apache.lucene.analysis.ko.morph.WordSegmentAnalyzer;
-import org.apache.lucene.analysis.ko.utils.DictionaryUtil;
-import org.apache.lucene.analysis.ko.utils.HanjaUtils;
-import org.apache.lucene.analysis.tokenattributes.*;
+import org.apache.lucene.analysis.ko.utils.MorphUtil;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 
 public final class KoreanFilter extends TokenFilter {
 
   private final LinkedList<KoreanToken> morphQueue = new LinkedList<KoreanToken>();
   private final MorphAnalyzer morph;
-  private final WordSegmentAnalyzer wsAnal = new WordSegmentAnalyzer();
   
   private State currentState = null;
   
@@ -49,13 +51,11 @@ public final class KoreanFilter extends TokenFilter {
     
   private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
   private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
-  private final PositionLengthAttribute posLenAtt = addAttribute(PositionLengthAttribute.class);
   private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
   private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
   private final MorphemeAttribute morphAtt = addAttribute(MorphemeAttribute.class);
 
   private static final String KOREAN_TYPE = KoreanTokenizer.TYPE_KOREAN;
-  private static final String CHINESE_TYPE = KoreanTokenizer.TYPE_KOREAN;
     
   public KoreanFilter(TokenStream input) {
     this(input, true);
@@ -82,7 +82,9 @@ public final class KoreanFilter extends TokenFilter {
 	  this(input, bigram, has,exactMatch,cnoun, false);
   }
   
-  public KoreanFilter(TokenStream input, boolean bigram, boolean has, boolean exactMatch, boolean cnoun, boolean isQuery) {
+  public KoreanFilter(TokenStream input, boolean bigram, boolean has, boolean exactMatch, 
+		  boolean cnoun, boolean isQuery) {
+	  
     super(input);
     this.bigrammable = bigram;
     this.hasOrigin = has;
@@ -90,6 +92,9 @@ public final class KoreanFilter extends TokenFilter {
     this.morph = new MorphAnalyzer();
     this.morph.setExactCompound(exactMatch);
     this.queryMode = isQuery;
+    
+    if(this.queryMode)
+    	this.morph.setDivisibleOne(false);
   }
   
   public boolean incrementToken() throws IOException {
@@ -149,6 +154,7 @@ public final class KoreanFilter extends TokenFilter {
    */
   private void analysisKorean(String input) throws MorphException {
 
+	input = trimHangul(input);
     List<AnalysisOutput> outputs = morph.analyze(input);
     if(outputs.size()==0) return;
     
@@ -156,32 +162,31 @@ public final class KoreanFilter extends TokenFilter {
     if(hasOrigin) map.put("0:"+input, new KoreanToken(input,offsetAtt.startOffset()));
 
     extractKeyword(outputs,offsetAtt.startOffset(), map, 0); 
-    
-//    if(outputs.get(0).getScore()>=AnalysisOutput.SCORE_COMPOUNDS) {
-//      extractKeyword(outputs,offsetAtt.startOffset(), map, 0);      
-////    } else {
-////      // check whether the input text has some insert spacing errors.
-////      List<AnalysisOutput> list = wsAnal.analyze(input);      
-////      List<AnalysisOutput> results = new ArrayList<AnalysisOutput>();    
-////      if(list.size()>1 && wsAnal.getOutputScore(list)>AnalysisOutput.SCORE_ANALYSIS) {
-////        int offset = 0;
-////        for(AnalysisOutput o : list) {
-////          if(hasOrigin) map.put(o.getSource(), new Token(o.getSource(),offsetAtt.startOffset()+offset,1));        
-////          results.addAll(morph.analyze(o.getSource()));
-////          offset += o.getSource().length();
-////        }       
-////      } else {
-////        results.addAll(outputs);
-////      }
-////      extractKeyword(results, offsetAtt.startOffset(), map, 0);
-//    }
 
-      Collection<KoreanToken> values = map.values();
-      for(KoreanToken kt : values) {
-          kt.setOutputs(outputs);
-      }
+    Collection<KoreanToken> values = map.values();
+    for(KoreanToken kt : values) {
+       kt.setOutputs(outputs);
+    }
 
       morphQueue.addAll(map.values());
+  }
+  
+  /**
+   * remove the preserved punctuation character followed by the input hangul word. (ex. 찾아서-)
+   * @param input
+   * @return
+   */
+  private String trimHangul(String input) {
+	  
+	  int minpos = input.length();
+	  for(int i=input.length()-1 ; i>=0 ; i--) {
+		  if(MorphUtil.isHanSyllable(input.charAt(i))) break;
+		  minpos = i;
+	  }
+	  
+	  if(minpos == input.length()) return input;
+	  
+	  return input.substring(0, minpos);
   }
   
   private void extractKeyword(List<AnalysisOutput> outputs, int startoffset, Map<String,KoreanToken> map, int position) {
@@ -193,13 +198,16 @@ public final class KoreanFilter extends TokenFilter {
     {
       if(queryMode && hasOrigin && 
     		  output.getScore()==AnalysisOutput.SCORE_ANALYSIS && output.getCNounList().size()<2) break;
+      
       if(output.getPos()==PatternConstants.POS_VERB) continue; // extract keywords from only noun
+      
+      if(output.getCNounList().size()>maxDecompounds) maxDecompounds = output.getCNounList().size();
       if(!originCNoun&&output.getCNounList().size()>0) continue; // except compound nound
+      
       int inc = map.size()>0 ? 0 : 1;
       map.put(position+":"+output.getStem(), new KoreanToken(output.getStem(),startoffset,inc));
         
       if(output.getStem().length()>maxStem) maxStem = output.getStem().length();
-      if(output.getCNounList().size()>maxDecompounds) maxDecompounds = output.getCNounList().size();
       
       // extract the first stem as the keyword for the query processing
       if(queryMode) break;

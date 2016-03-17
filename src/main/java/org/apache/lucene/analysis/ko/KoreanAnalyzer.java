@@ -17,34 +17,38 @@ package org.apache.lucene.analysis.ko;
  * limitations under the License.
  */
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.en.EnglishPossessiveFilter;
-import org.apache.lucene.analysis.en.PorterStemFilter;
-import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
-import org.apache.lucene.analysis.miscellaneous.KeywordRepeatFilter;
-import org.apache.lucene.analysis.miscellaneous.RemoveDuplicatesTokenFilter;
-import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilter;
 import org.apache.lucene.analysis.standard.ClassicFilter;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
-import org.apache.lucene.util.Version;
 
 /**
  * A Korean Analyzer
  */
 public class KoreanAnalyzer extends StopwordAnalyzerBase {
 
-  /** Default maximum allowed token length */
-  public static final int DEFAULT_MAX_TOKEN_LENGTH = 255;
+  /** An unmodifiable set containing some common English words that are not usually useful
+  for searching.*/
+  public static final CharArraySet ENGLISH_STOP_WORDS_SET;
 
-  private int maxTokenLength = DEFAULT_MAX_TOKEN_LENGTH;
+  static {
+    final List<String> stopWords = Arrays.asList(
+      "a", "an", "and", "are", "as", "at", "be", "but", "by",
+      "for", "if", "in", "into", "is", "it",
+      "no", "not", "of", "on", "or", "such",
+      "that", "the", "their", "then", "there", "these",
+      "they", "this", "to", "was", "will", "with"
+    );
+    final CharArraySet stopSet = new CharArraySet(stopWords, false);
+    ENGLISH_STOP_WORDS_SET = CharArraySet.unmodifiableSet(stopSet);
+  }
 
   private boolean bigrammable = false;
 
@@ -55,52 +59,19 @@ public class KoreanAnalyzer extends StopwordAnalyzerBase {
   private boolean queryMode = false;
   private boolean wordSegment = false;
 
-  /** An unmodifiable set containing some common words that are usually not useful for searching. */
-  public static final CharArraySet STOP_WORDS_SET;
-  static {
-    try {
-      STOP_WORDS_SET = loadStopwordSet(false, KoreanAnalyzer.class, "stopwords.txt", "#");
-    } catch (IOException ioe) {
-      throw new Error("Cannot load stop words", ioe);
-    }
-  }
-
   public KoreanAnalyzer() {
-    this(STOP_WORDS_SET);
+	  this(ENGLISH_STOP_WORDS_SET);
   }
 
-  /**
-   * ��������� ������ ���������������
-   */
-  public KoreanAnalyzer(boolean exactMatch) {
-    this(STOP_WORDS_SET);
-    this.exactMatch = exactMatch;
-  }
-
-  public KoreanAnalyzer(String[] stopWords) throws IOException {
-    this(StopFilter.makeStopSet(stopWords));
-  }
-
-  public KoreanAnalyzer(File stopwords) throws IOException {
-    this(loadStopwordSet(stopwords));
-  }
-
-  public KoreanAnalyzer(File stopwords, String encoding) throws IOException {
-    this(loadStopwordSet(stopwords));
-  }
-
-  public KoreanAnalyzer(Reader stopwords) throws IOException {
-    this(loadStopwordSet(stopwords));
-  }
-
+  /** Builds an analyzer with the stop words from the given set.
+   * @param stopWords Set of stop words */
   public KoreanAnalyzer(CharArraySet stopWords) {
     super(stopWords);
   }
 
   @Override
-  protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
-    final KoreanTokenizer src = new KoreanTokenizer(reader);
-//    src.setMaxTokenLength(maxTokenLength);
+  protected TokenStreamComponents createComponents(final String fieldName) {
+    final KoreanTokenizer src = new KoreanTokenizer();
     TokenStream tok = new LowerCaseFilter(src);
     tok = new ClassicFilter(tok);
     tok = new KoreanFilter(tok, bigrammable, hasOrigin, exactMatch, originCNoun, queryMode);
@@ -108,13 +79,9 @@ public class KoreanAnalyzer extends StopwordAnalyzerBase {
     tok = new HanjaMappingFilter(tok);
     tok = new PunctuationDelimitFilter(tok);
     tok = new StopFilter(tok, stopwords);
-    return new TokenStreamComponents(src, tok) {
-      @Override
-      protected void setReader(final Reader reader) throws IOException {
-//        src.setMaxTokenLength(KoreanAnalyzer.this.maxTokenLength);
-        super.setReader(reader);
-      }
-    };
+
+    return new TokenStreamComponents(src, tok);
+
   }
 
   /**
@@ -163,6 +130,5 @@ public class KoreanAnalyzer extends StopwordAnalyzerBase {
 	public void setWordSegment(boolean wordSegment) {
 		this.wordSegment = wordSegment;
 	}
-
 
 }

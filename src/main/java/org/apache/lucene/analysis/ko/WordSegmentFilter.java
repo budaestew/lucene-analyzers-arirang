@@ -1,13 +1,11 @@
 package org.apache.lucene.analysis.ko;
 
 import java.io.IOException;
-
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.core.KeywordTokenizerFactory;
 import org.apache.lucene.analysis.ko.morph.AnalysisOutput;
 import org.apache.lucene.analysis.ko.morph.CompoundEntry;
 import org.apache.lucene.analysis.ko.morph.MorphException;
@@ -18,17 +16,12 @@ import org.apache.lucene.analysis.ko.utils.MorphUtil;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
-import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
-import org.apache.lucene.util.AttributeSource.State;
 
 public final class WordSegmentFilter extends TokenFilter {
 
     private final LinkedList<KoreanToken> outQueue = new LinkedList<KoreanToken>();
     
     private boolean modeQueue = false;
-    
-    private State currentState = null;
     
     private WordSegmentAnalyzer segmentAnalyzer;
     
@@ -130,7 +123,7 @@ public final class WordSegmentFilter extends TokenFilter {
 					offset += word.length();
 				}
 				
-				currentState = captureState();
+				captureState();
 				modeQueue = true;
 				morphOutputs = kToken.getOutputs();
 				
@@ -181,7 +174,6 @@ public final class WordSegmentFilter extends TokenFilter {
     public void reset() throws IOException {
         super.reset();
         outQueue.clear();
-        currentState = null;
     }
     
 }

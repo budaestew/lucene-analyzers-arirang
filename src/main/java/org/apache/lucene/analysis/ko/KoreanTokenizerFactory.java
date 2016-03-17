@@ -17,7 +17,6 @@ package org.apache.lucene.analysis.ko;
  * limitations under the License.
  */
 
-import java.io.Reader;
 import java.util.Map;
 
 import org.apache.lucene.analysis.Tokenizer;
@@ -36,8 +35,8 @@ public class KoreanTokenizerFactory extends TokenizerFactory {
     }
   }
 
-  @Override
-  public Tokenizer create(AttributeFactory factory, Reader input) {
-    return new KoreanTokenizer(factory, input);
-  }
+	@Override
+	public Tokenizer create(AttributeFactory factory) {
+		return new KoreanTokenizer(factory);
+	}
 }
