@@ -1,11 +1,12 @@
 package org.apache.lucene.ko;
 
-import org.apache.commons.lang.StringUtils;
+import junit.framework.TestCase;
+
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ko.KoreanAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-
-import junit.framework.TestCase;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
 public class TestKoreanAnalyzer extends TestCase {
 
@@ -17,17 +18,41 @@ public class TestKoreanAnalyzer extends TestCase {
 //		input = "空間의";
 //		input =  "di" + '\u000B' + "erent";
 //		input = "찾아서- C# 달리기";
+//		input = "ab.cd";
+//		input = "절차서";
+//		input = "입찰안내서";
+//		input = "9호기";
+//		input = "입찰평가보고서";
+//		input = "입찰평가보고서";
+//		input = "배수로";
+//		input = "기성고사정기준";
+//		input = "기준(정식)은";
+//		input = "사업  기계 보일러";
+//		input = "사업((기계)보일러)";
+//		input = "사업((기계)보일러)가";
+//		input = "(기계)에";
+//		input = "되었다";
+		input="홍재룡(洪在龍)이며";
+//		input="[2015/12/12] 일일감리보고서";
 		
 		KoreanAnalyzer a = new KoreanAnalyzer();
+		a.setHasOrigin(false);
 		a.setQueryMode(false);
+		a.setOriginCNoun(true);
+		a.setDecompound(true);
 		
 		StringBuilder actual = new StringBuilder();
 		
 	     TokenStream ts = a.tokenStream("bogus", input);
-	      CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
+	     CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
+	     OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
+	     PositionIncrementAttribute posIncrAtt = ts.addAttribute(PositionIncrementAttribute.class);
+	     
 	      ts.reset();
 	      while (ts.incrementToken()) {
-	        actual.append(termAtt.toString());
+	        if(posIncrAtt.getPositionIncrement()==1) 
+	        	actual.append('\n');
+	        actual.append(termAtt.toString()).append(":"+offsetAtt.startOffset()+","+offsetAtt.endOffset()+"/"+posIncrAtt.getPositionIncrement());
 	        actual.append(' ');
 	      }
 	      System.out.println(actual);
@@ -45,5 +70,13 @@ public class TestKoreanAnalyzer extends TestCase {
 		System.out.println(code);
 		
 		System.out.println(Character.getType('&'));
+	}
+	
+	public void testCharacter() throws Exception {
+		String str = "領)(az01가-'.";
+		for(int i=0;i<str.length();i++) {
+			char c = str.charAt(i);
+			System.out.println(c+":"+Character.isLetterOrDigit(c));
+		}
 	}
 }

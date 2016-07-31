@@ -41,7 +41,9 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 
 public class KoreanFilterFactory extends TokenFilterFactory {
 
-  private static final String BIGRAMMABLE_PARAM = "bigrammable";
+  private static final String DECOMPOUND_PARAM = "decompound";
+
+private static final String BIGRAMMABLE_PARAM = "bigrammable";
 
   private static final String HAS_ORIGIN_PARAM = "hasOrigin";
 
@@ -62,6 +64,9 @@ public class KoreanFilterFactory extends TokenFilterFactory {
   
   private final boolean queryMode;
   
+  private final boolean decompound;
+  
+  
   /**
    * Initialize this factory via a set of key-value pairs.
    */
@@ -72,12 +77,13 @@ public class KoreanFilterFactory extends TokenFilterFactory {
     exactMatch = getBoolean(args, EXACT_MATCH_PARAM, false);
     hasCNoun = getBoolean(args, HAS_COMPOUND_NOUN_PARAM, true);
     queryMode = getBoolean(args, IS_QUERY_MODE_PARAM, true);
+    decompound = getBoolean(args, DECOMPOUND_PARAM, true);
     if (!args.isEmpty()) {
       throw new IllegalArgumentException("Unknown parameters: " + args);
     }
   }
 
   public TokenStream create(TokenStream tokenstream) {
-    return new KoreanFilter(tokenstream, bigrammable, hasOrigin, exactMatch, hasCNoun, queryMode);
+    return new KoreanFilter(tokenstream, bigrammable, hasOrigin, exactMatch, hasCNoun, queryMode, decompound);
   }
 }

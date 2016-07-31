@@ -1,16 +1,13 @@
 package org.apache.lucene.ko;
 
+import junit.framework.TestCase;
+
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ko.KoreanAnalyzer;
-import org.apache.lucene.analysis.ko.MorphemeAttribute;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
-import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 public class WordSegmentFilterTest extends TestCase {
 

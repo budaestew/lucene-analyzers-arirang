@@ -11,6 +11,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.KeywordAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 
 /**
  * Created by SooMyung(soomyung.lee@gmail.com) on 2014. 7. 30.
@@ -22,11 +23,20 @@ public final class PunctuationDelimitFilter extends TokenFilter {
 
     private State currentState = null;
 
+	private boolean hasSplitedTerm = true;
+	
+	private boolean hasPunctation = true;
+	
+	private boolean hasConcatedTerm = false;
+	
+	private int minTermSize = 1;
+	
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
     private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
     private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
     private final KeywordAttribute keywordAtt = addAttribute(KeywordAttribute.class);
-
+    private final TypeAttribute typeAtt = addAttribute(TypeAttribute.class);
+    
     /**
      * Construct a token stream filtering the given input.
      *
@@ -36,6 +46,22 @@ public final class PunctuationDelimitFilter extends TokenFilter {
         super(input);
     }
 
+    public void setHasSplitedTerm(boolean has) {
+    	this.hasSplitedTerm = has;
+    }
+    
+    public void setHasPunctation(boolean has) {
+    	this.hasPunctation = has;
+    }
+    
+    public void setHasConcatedTerm(boolean has) {
+    	this.hasConcatedTerm = has;
+    }
+    
+    public void setMinTermSize(int size) {
+    	this.minTermSize = size;
+    }
+    
     @Override
     public boolean incrementToken() throws IOException {
 
@@ -46,7 +72,8 @@ public final class PunctuationDelimitFilter extends TokenFilter {
         }
 
         while (input.incrementToken()) {
-        	if (keywordAtt.isKeyword()) return true;
+        	if (keywordAtt.isKeyword() || 
+        			KoreanTokenizer.TYPE_SIMBOL.equals(typeAtt.type())) return true;
             if(!containPunctuation(termAtt.toString())) return true;
 
             splitByPunctuation(termAtt.toString());
@@ -64,12 +91,12 @@ public final class PunctuationDelimitFilter extends TokenFilter {
         final Token iw = outQueue.removeFirst();
 
         if (isFirst && !outQueue.isEmpty()) {
-            termAtt.setEmpty();
+//            termAtt.setEmpty();
             currentState = captureState();
         }
 
         termAtt.setEmpty().append(iw.getTerm());
-        offsetAtt.setOffset(iw.getOffset(), iw.getOffset() + iw.term.length());
+        offsetAtt.setOffset(iw.getOffset(), iw.getEndOffset());
         posIncrAtt.setPositionIncrement(iw.getIncrement());
     }
 
@@ -79,15 +106,23 @@ public final class PunctuationDelimitFilter extends TokenFilter {
         int startOffset = offsetAtt.startOffset();
 
         List<String> array = new ArrayList<String>();
+        List<String> fullstr = new ArrayList<String>();
+        
+        boolean containChar = false;
+        int skip = 0;
         for(int i=0;i<term.length();i++) {
             if(isPunctuation(term.charAt(i))) {
                 if(sb.length()>0) {
                     array.add(sb.toString());
+                    sb.append(term.charAt(i));
+                    fullstr.add(sb.toString());
                     sb = new StringBuffer();
                 }
-                continue;
-            }
-            sb.append(term.charAt(i));
+                if(!containChar) skip++;
+            } else {
+            	sb.append(term.charAt(i));
+            	containChar = true;
+            } 
         }
         
         if(sb.length()>0) 
@@ -98,21 +133,28 @@ public final class PunctuationDelimitFilter extends TokenFilter {
         // add original text
         outQueue.add(new Token(termAtt.toString(),startOffset, posIncrAtt.getPositionIncrement()));
 
-        sb = new StringBuffer();
-        for(String str : array) {
-            sb.append(str);
+        startOffset += skip; // when begining with punctutation.
+        if(hasConcatedTerm) {
+            sb = new StringBuffer();
+            for(String str : array) {
+                sb.append(str);
+            }
+
+            // add a token with punctuation removed.
+            outQueue.add(new Token(sb.toString(), startOffset, offsetAtt.endOffset(), 0));
+            if(sb.length()==1) return;
         }
 
-        // add a token with punctuation removed.
-        outQueue.add(new Token(sb.toString(),startOffset, 0));
-        if(sb.length()==1) return;
-        
-        // add tokens splited by punctuation.
-        int offset = 0;
-        for(int i=0; i<array.size();i++) {
-            int inc = i==0 ? 0 : 1;
-            outQueue.add(new Token(array.get(i),startOffset+offset, inc));
-            offset += array.get(i).length();
+        if(hasSplitedTerm) {
+            // add tokens splited by punctuation.
+            int offset = 0;
+            for(int i=0; i<array.size();i++) {
+                int inc = i==0 ? 0 : 1;
+                outQueue.add(new Token(array.get(i),startOffset+offset, inc));
+                if(hasPunctation && i<fullstr.size())
+                	outQueue.add(new Token(fullstr.get(i),startOffset+offset, 0));
+                offset += array.get(i).length()+1;
+            }
         }
 
     }
@@ -157,21 +199,28 @@ public final class PunctuationDelimitFilter extends TokenFilter {
 
     private class Token {
         int offset;
+        
+        int endoffset;
 
         int increment = 1;
 
         String term;
 
         public Token(String term, int offset) {
-            this.term = term;
-            this.offset= offset;
+        	this(term,offset,1);
         }
 
         public Token(String term, int offset, int inc) {
-            this(term,offset);
-            this.increment =inc;
+            this(term,offset,offset+term.length(),inc);
         }
 
+        public Token(String term, int offset, int endoffset, int inc) {
+            this.term=term;
+            this.offset=offset;
+            this.endoffset=endoffset;
+            this.increment =inc;
+        }
+        
         public int getOffset() {
             return offset;
         }
@@ -181,6 +230,15 @@ public final class PunctuationDelimitFilter extends TokenFilter {
             this.offset = offset;
         }
 
+        public int getEndOffset() {
+            return endoffset;
+        }
+
+        @SuppressWarnings("unused")
+		public void setEndOffset(int offset) {
+            this.endoffset = offset;
+        }
+        
         public int getIncrement() {
             return increment;
         }

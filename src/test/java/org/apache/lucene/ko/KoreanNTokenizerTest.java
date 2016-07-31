@@ -74,41 +74,41 @@ public class KoreanNTokenizerTest extends TestCase {
         }
 
     }
-    
+
     public void testUtils() throws Exception {
     	List<Integer> list = new ArrayList<Integer>();
     	for(int i=0;i<100;i++) {
     		list.add(i);
     	}
-    	
+
     	removeLast(list, 50);
-    	
+
     	System.out.println(list.size());
-    	
+
     	for(int i=0;i<100;i++) {
     		list.add(i);
     	}
-    	
+
     	removeLast(list, 50);
-    	
+
     	System.out.println(list.size());
-    	
+
 //    	for(int i=0;i<subList.size();i++) {
 //    		list.remove(subList.get(i));
 //    	}
 
     }
-    
+
     private void removeLast(List<Integer> list, int start) {
     	List<Integer> removed = new ArrayList();
     	for(int i=start;i<list.size();i++) {
     		removed.add(list.get(i));
     	}
-    	
+
     	for(Integer o : removed) {
     		list.remove(0);
     	}
-    	
+
     	removed = null;
     }
 
